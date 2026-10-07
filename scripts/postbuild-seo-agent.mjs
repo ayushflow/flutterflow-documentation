@@ -64,6 +64,7 @@ for (const page of pages) {
   let content = fs.existsSync(markdownPath) ? fs.readFileSync(markdownPath, 'utf8').trim() : '';
   if (!content && page.source) content = sourceToAgentMarkdown(page.source.body);
   if (!content && page.generated) content = generatedIndexMarkdown(page);
+  if (page.source) content = labelInstructionalVideos(content, page);
   const metadataBlock = [
     '---',
     `title: ${yamlString(page.title)}`,
@@ -167,6 +168,26 @@ function sourceToAgentMarkdown(body) {
     .replace(/<[^>]+>/g, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
+}
+
+function labelInstructionalVideos(markdown, page) {
+  const htmlPath = page.route === '/'
+    ? path.join(buildDir, 'index.html')
+    : path.join(buildDir, page.route.slice(1), 'index.html');
+  const html = fs.readFileSync(htmlPath, 'utf8');
+  const labels = new Map();
+  for (const video of html.match(/<video\b[\s\S]*?<\/video>/gi) || []) {
+    const label = video.match(/\baria-label="([^"]+)"/)?.[1];
+    const source = video.match(/<source\b[^>]*\bsrc="([^"]+)"/)?.[1];
+    if (!label || !source) continue;
+    const text = label.replace(/&quot;/g, '"').replace(/&#x27;|&#39;|&apos;/g, "'")
+      .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+    labels.set(source, text.replace(/[\\\[\]]/g, '\\$&'));
+  }
+  return markdown.replace(/\[\]\(([^)]+)\)/g, (link, url) => {
+    const label = labels.get(url);
+    return label ? `[Video: ${label}](${url})` : link;
+  });
 }
 
 function generatedIndexMarkdown(page) {

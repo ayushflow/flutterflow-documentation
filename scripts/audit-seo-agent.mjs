@@ -160,6 +160,7 @@ function auditBuiltArtifacts() {
     check(llmsFull.includes(`canonical_url: ${JSON.stringify(`${config.siteUrl}${page.route}`)}`), 'agent', 'missing-llms-full-entry', page.sourcePath || page.route, 'Add the canonical page to llms-full.txt.');
     if (fs.existsSync(markdownPath)) {
       const markdown = fs.readFileSync(markdownPath, 'utf8');
+      check(!/\[\]\([^)]*\.(?:mp4|webm)(?:\?[^)]*)?\)/i.test(markdown), 'agent', 'unlabelled-exported-video', page.sourcePath || page.route, 'Preserve descriptive video labels in page Markdown and agent corpora.');
       check(markdown.includes(`canonical_url: ${JSON.stringify(`${config.siteUrl}${page.route}`)}`), 'agent', 'incorrect-page-markdown-canonical', page.sourcePath || page.route, 'Page Markdown must identify its exact canonical URL.');
       check(!page.sourcePath || markdown.includes(`source_file: ${JSON.stringify(page.sourcePath)}`), 'agent', 'missing-page-markdown-source', page.sourcePath || page.route, 'Page Markdown must identify its source file.');
     }
